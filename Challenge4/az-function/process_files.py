@@ -7,6 +7,8 @@ from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPerm
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeResult, AnalyzeDocumentRequest
+from azure.ai.formrecognizer import DocumentAnalysisClient as OldDocumentIntelligenceClient, AnalyzeResult as OldAnalyzeResult
+import httpx
 
 def get_blob_service_client():
     return BlobServiceClient.from_connection_string(os.getenv('STORAGE_CONNECTION_STRING'))
@@ -41,16 +43,16 @@ def generate_sas_url(blob_service_client, container_name, blob_name, expiry_hour
 
 def analyze_layout(sas_url):
 
-    document_intelligence_client = DocumentIntelligenceClient(
+    document_intelligence_client = OldDocumentIntelligenceClient(
         endpoint=os.getenv("DOCUMENTINTELLIGENCE_ENDPOINT"),
         credential=AzureKeyCredential(os.getenv("DOCUMENTINTELLIGENCE_API_KEY")),
     )
 
     poller = document_intelligence_client.begin_analyze_document(
-        "prebuilt-layout", AnalyzeDocumentRequest(url_source=sas_url)
+        "prebuilt-layout", httpx.Client().get(sas_url).read()
     )
 
-    result: AnalyzeResult = poller.result()
+    result: OldAnalyzeResult = poller.result()
 
     analysis_result = {
         "handwritten": (
